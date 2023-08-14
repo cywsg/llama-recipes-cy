@@ -17,6 +17,7 @@ from utils import fsdp_auto_wrap_policy
 from transformers import (
     LlamaForCausalLM,
     LlamaTokenizer,
+    LlamaConfig,
     AutoModelForCausalLM,
     AutoModelForSeq2SeqLM,
     AutoTokenizer,
@@ -65,7 +66,7 @@ import torch
 import torch.cuda.nccl as nccl
 import torch.distributed as dist
 from transformers.models.llama.modeling_llama import LlamaDecoderLayer
-from torch.utils.data import random_split
+from torch.utils.data import random_split, Subset
 
 
 def main(**kwargs):
@@ -98,10 +99,11 @@ def main(**kwargs):
         )
     else:
         # split the data set to training data and validation data
-        dataset = dataset_train
+#         dataset = dataset_train
+        indices = torch.arange(1000)
+        dataset = Subset(dataset_train, indices)
         train_size = int(0.9 * len(dataset))
         dataset_train, dataset_val = random_split(dataset, [train_size, len(dataset) - train_size])
-
 
     # Set the seeds for reproducibility
     torch.cuda.manual_seed(train_config.seed)
@@ -115,19 +117,62 @@ def main(**kwargs):
         world_size = int(os.environ["WORLD_SIZE"])
 
     if torch.distributed.is_initialized():
-        torch.cuda.set_device(rank)
+        torch.cuda.set_device(local_rank)
+        clear_gpu_cache(local_rank)
         setup_environ_flags(rank)
     
     # Calculate gradient accumulation steps
     gradient_accumulation_steps = train_config.batch_size_training // train_config.micro_batch_size
      
-    # Load the pre-trained model and setup its configuration
-    model = AutoModelForCausalLM.from_pretrained(
-        train_config.model_name,
-        load_in_8bit=True if train_config.quantization else None,
-        device_map="auto" if train_config.quantization else None,
-    )
+#     # Load the pre-trained model and setup its configuration
+#     model = AutoModelForCausalLM.from_pretrained(
+#         train_config.model_name,
+#         load_in_8bit=True if train_config.quantization else None,
+#         device_map="auto" if train_config.quantization else None,
+#     )
     
+    # Load the pre-trained model and setup its configuration
+    if train_config.enable_fsdp and train_config.low_cpu_fsdp:
+        """
+        for FSDP, we can save cpu memory by loading pretrained model on rank0 only.
+        this avoids cpu oom when loading large models like llama 70B, in which case
+        model alone would consume 2+TB cpu mem (70 * 4 * 8). This will add some comms
+        overhead and currently requires latest nightly.
+        """
+        v = packaging.version.parse(torch.__version__)
+        verify_latest_nightly = v.is_devrelease and v.dev >= 20230701
+        if not verify_latest_nightly:
+            raise Exception("latest pytorch nightly build is required to run with low_cpu_fsdp config, "
+                            "please install latest nightly.")
+        if rank == 0:
+            model = LlamaForCausalLM.from_pretrained(
+                train_config.model_name,
+                load_in_8bit=True if train_config.quantization else None,
+                device_map="auto" if train_config.quantization else None,
+            )
+        else:
+            llama_config = LlamaConfig.from_pretrained(train_config.model_name)
+            with torch.device("meta"):
+                model = LlamaForCausalLM(llama_config)
+
+    else:
+        model = LlamaForCausalLM.from_pretrained(
+            train_config.model_name,
+            load_in_8bit=True if train_config.quantization else None,
+            device_map="auto" if train_config.quantization else None,
+        ) 
+
+    if train_config.enable_fsdp and train_config.use_fast_kernels:
+        """
+        For FSDP and FSDP+PEFT, setting 'use_fast_kernels' will enable
+        using of Flash Attention or Xformer memory-efficient kernels 
+        based on the hardware being used. This would speed up fine-tuning.
+        """
+        try:
+            from optimum.bettertransformer import BetterTransformer
+            model = BetterTransformer.transform(model) 
+        except ImportError:
+            print("Module 'optimum' not found. Please install 'optimum' it before proceeding.")    
     print_model_size(model, train_config, rank if train_config.enable_fsdp else 0)
     
     # Prepare the model for int8 training if quantization is enabled
@@ -159,6 +204,9 @@ def main(**kwargs):
             sharding_strategy=fsdp_config.sharding_strategy,
             device_id=torch.cuda.current_device(),
             limit_all_gathers=True,
+            sync_module_states=train_config.low_cpu_fsdp,
+            param_init_fn=lambda module: module.to_empty(device=torch.device("cuda"), recurse=False)
+            if train_config.low_cpu_fsdp and rank != 0 else None,
         )
         if fsdp_config.fsdp_activation_checkpointing:
             policies.apply_fsdp_checkpointing(model)
