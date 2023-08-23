@@ -1,15 +1,11 @@
-# Copyright (c) Meta Platforms, Inc. and affiliates.
-# This software may be used and distributed according to the terms of the GNU General Public License version 3.
-
-
 #!/bin/bash
 
-#SBATCH --job-name=Nano-2d-trainer-20b-8nodes
+#SBATCH --job-name=Llama2-7b-finetuning-1node
 
-#SBATCH --ntasks=2
-#SBATCH --nodes=2
-#SBATCH --gpus-per-task=4
-#SBATCH --partition=train 
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --gpus-per-task=8
+### SBATCH --partition=train 
 nodes=( $( scontrol show hostnames $SLURM_JOB_NODELIST ) )
 nodes_array=($nodes)
 head_node=${nodes_array[0]}
@@ -32,5 +28,20 @@ export CUDA_LAUNCH_BLOCKING=0
 export NCCL_SOCKET_IFNAME="ens"
 export FI_EFA_USE_DEVICE_RDMA=1
 
-srun  torchrun --nproc_per_node 4 --rdzv_id $RANDOM --rdzv_backend c10d --rdzv_endpoint $head_node_ip:29500 llama_finetuning.py  --enable_fsdp --use_peft --peft_method lora
+# srun  torchrun --nproc_per_node 8 --rdzv_id $RANDOM --rdzv_backend c10d --rdzv_endpoint $head_node_ip:29500 llama_finetuning.py  --enable_fsdp --use_peft --peft_method lora
 
+# srun torchrun --nproc_per_node 8 --rdzv_id $RANDOM --rdzv_backend c10d --rdzv_endpoint $head_node_ip:29500 llama_finetuning.py --enable_fsdp  \
+#	 --model_name  /home/chong-yaw.wee/work/models/Llama-2-70b-hf  \
+#	 --dist_checkpoint_root_folder model_checkpoints \
+#	 --dist_checkpoint_folder sso-finetuned-4k  --pure_bf16 --use_fast_kernels \
+#	 --dataset ssoj_dataset --num_epochs 1 --lr 0.000002 \
+#	 --weight_decay 0.01   --batch_size_training 1 --micro_batch_size 1
+
+
+srun  torchrun  --nproc_per_node 8 --rdzv_id $RANDOM --rdzv_backend c10d --rdzv_endpoint $head_node_ip:29500 \
+	 llama_finetuning.py --enable_fsdp --low_cpu_fsdp --fsdp_cpu_offload --use_fast_kernels  \
+	 --model_name  /home/chong-yaw.wee/work/models/Llama-2-7b-hf  \
+	 --dist_checkpoint_root_folder model_checkpoints \
+	 --dist_checkpoint_folder sso-finetuned-4k  --pure_bf16 \
+	 --dataset ssoj_dataset --num_epochs 1 --lr 0.000002 \
+	 --weight_decay 0.01   --batch_size_training 2 --micro_batch_size 2

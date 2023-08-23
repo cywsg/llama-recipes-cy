@@ -35,3 +35,22 @@ class ssoj_dataset:
     test_split: str = ""
     data_path: str = "ft_datasets/finetuning_sso_j.txt"
     input_length: int = 4096
+
+
+@dataclass
+class ssoj_short_dataset:
+    dataset: str = "ssoj_short_dataset"
+    train_split: str = "train"
+    test_split: str = ""
+    data_path: str = "ft_datasets/finetuning_sso_j_short.txt"
+    input_length: int = 2048
+
+
+@dataclass
+class wiki_dataset:
+    dataset: str = "wiki_dataset"
+    train_split: str = "train"
+    test_split: str = ""
+    data_path: str = "ft_datasets/wiki_demo.txt"
+    input_length: int = 2048
+

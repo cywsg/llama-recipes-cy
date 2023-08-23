@@ -19,6 +19,8 @@ DATASET_PREPROC = {
     "grammar_dataset": get_grammar_dataset,
     "samsum_dataset": get_samsum_dataset,
     "ssoj_dataset": get_text_dataset,
+    "ssoj_short_dataset": get_text_dataset,
+    "wiki_dataset": get_text_dataset,
 }
 
 
