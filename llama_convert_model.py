@@ -47,16 +47,17 @@ if __name__ == "__main__":
 
     # Load model
     print("start load base model")
-    model = AutoModelForCausalLM.from_pretrained(args_c.base_model_path)
+    data_type = torch.float16
+    model = AutoModelForCausalLM.from_pretrained(args_c.base_model_path, device_map="auto", low_cpu_mem_usage=True, use_safetensors=False, torch_dtype=data_type)
 
     print("start load finetuned pt  model")
     model.load_state_dict(torch.load(pt_model_path))
 
     print("start save pretrained model")
-    model.save_pretrained(args_c.save_output)
+    model.save_pretrained(args_c.save_output, safe_serialization=False)
 
     tokenizer = AutoTokenizer.from_pretrained(args_c.base_model_path)
-    tokenizer.save_pretrained(args_c.save_output)
+    tokenizer.save_pretrained(args_c.save_output, legacy_format=False)
 
 
 
