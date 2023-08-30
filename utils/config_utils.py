@@ -8,6 +8,7 @@ from peft import (
     AdaptionPromptConfig,
     PrefixTuningConfig,
 )
+from transformers import BitsAndBytesConfig
 
 import configs.datasets as datasets
 from configs import lora_config, llama_adapter_config, prefix_config, train_config
@@ -48,6 +49,17 @@ def generate_peft_config(train_config, kwargs):
     peft_config = peft_configs[names.index(train_config.peft_method)](**params)
     
     return peft_config
+
+
+def create_bnb_config() -> BitsAndBytesConfig:
+    bnb_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_use_double_quant=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_compute_dtype=torch.bfloat16,
+    )
+
+    return bnb_config
 
 
 def generate_dataset_config(train_config, kwargs):

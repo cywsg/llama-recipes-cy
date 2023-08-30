@@ -6,12 +6,12 @@ from typing import ClassVar, List
 
 @dataclass
 class lora_config:
-     r: int=8
-     lora_alpha: int=32
-     target_modules: ClassVar[List[str]]= ["q_proj", "v_proj"]
+     r: int=16
+     lora_alpha: int=64
+     target_modules: ClassVar[List[str]]= ["k_proj", "gate_proj", "v_proj", "up_proj", "q_proj", "o_proj", "down_proj"]
      bias= "none"
      task_type: str= "CAUSAL_LM"
-     lora_dropout: float=0.05
+     lora_dropout: float=0.1
      inference_mode: bool = False
 
 @dataclass

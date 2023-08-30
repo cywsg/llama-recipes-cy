@@ -54,3 +54,10 @@ class wiki_dataset:
     data_path: str = "ft_datasets/wiki_demo.txt"
     input_length: int = 2048
 
+
+@dataclass
+class sum_dataset:
+    dataset: str =  "sum_dataset"
+    train_split: str = "train"
+    test_split: str = ""
+    input_length: int = 32768
