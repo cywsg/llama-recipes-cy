@@ -5,3 +5,5 @@ from .grammar_dataset import get_dataset as get_grammar_dataset
 from .alpaca_dataset import InstructionDataset as get_alpaca_dataset
 from .samsum_dataset import get_preprocessed_samsum as get_samsum_dataset
 from .text_dataset import get_dataset as get_text_dataset
+from .sum_dataset import get_preprocessed_sum as get_sum_dataset
+

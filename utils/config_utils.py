@@ -2,6 +2,7 @@
 # This software may be used and distributed according to the terms of the Llama 2 Community License Agreement.
 
 import inspect
+import torch
 from dataclasses import fields
 from peft import (
     LoraConfig,

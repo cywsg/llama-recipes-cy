@@ -1,4 +1,4 @@
-opyright (c) Meta Platforms, Inc. and affiliates.
+# Copyright (c) Meta Platforms, Inc. and affiliates.
 # This software may be used and distributed according to the terms of the Llama 2 Community License Agreement.
 
 import datasets
@@ -14,13 +14,13 @@ def get_preprocessed_sum(dataset_config, tokenizer, split):
     )
 
     prompt = (
-        f"Summarize the following legal judgement:\n{{judgement}}\n---\nSummary:\n{{summary}}{{eos_token}}"
+        f"Summarize the following legal judgment:\n{{judgment}}\n---\nSummary:\n{{summary}}{{eos_token}}"
     )
 
     def create_prompt_formats(sample):
         return {
             "text": prompt.format(
-                judgement=sample["judgement"],
+                judgment=sample["judgment"],
                 summary=sample["summary"],
                 eos_token=tokenizer.eos_token,
             )
