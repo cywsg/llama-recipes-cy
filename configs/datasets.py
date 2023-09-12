@@ -60,4 +60,5 @@ class sum_dataset:
     dataset: str =  "sum_dataset"
     train_split: str = "train"
     test_split: str = ""
+    data_path: str = "ft_datasets/summ_data_32k/judiciary_32k_train.jsonl"
     input_length: int = 32768

@@ -133,6 +133,9 @@ def main(**kwargs):
 #         device_map="auto" if train_config.quantization else None,
 #     )
     
+    if train_config.quantization:
+        bnb_config = create_bnb_config()
+
     # Load the pre-trained model and setup its configuration
     if train_config.enable_fsdp and train_config.low_cpu_fsdp:
         """
@@ -149,7 +152,8 @@ def main(**kwargs):
         if rank == 0:
             model = LlamaForCausalLM.from_pretrained(
                 train_config.model_name,
-                load_in_8bit=True if train_config.quantization else None,
+                quantization_config=bnb_config,
+                # load_in_8bit=True if train_config.quantization else None,
                 device_map="auto" if train_config.quantization else None,
                 use_safetensors=False,
             )

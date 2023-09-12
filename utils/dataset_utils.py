@@ -10,6 +10,7 @@ from ft_datasets import (
     get_alpaca_dataset,
     get_samsum_dataset,
     get_text_dataset,
+    get_sum_dataset,
 )
 from typing import Optional
 
@@ -21,6 +22,7 @@ DATASET_PREPROC = {
     "ssoj_dataset": get_text_dataset,
     "ssoj_short_dataset": get_text_dataset,
     "wiki_dataset": get_text_dataset,
+    "sum_dataset": get_sum_dataset,
 }
 
 
