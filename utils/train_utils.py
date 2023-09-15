@@ -7,6 +7,7 @@ from typing import List
 import yaml
 
 import fire
+import json
 import torch
 import transformers
 from datasets import load_dataset
@@ -18,6 +19,7 @@ import bitsandbytes as bnb
 """
 from torch.nn import functional as F
 from peft import (
+    AutoPeftModelForCausalLM,
     LoraConfig,
     get_peft_model,
     get_peft_model_state_dict,
@@ -36,6 +38,27 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 from policies import bfSixteen, fpSixteen,bfSixteen_mixed, get_llama_wrapper
 
+
+def merge_weights_save_model(
+    peft_model_path,
+    output_merged_dir,
+    tokenizer,
+):
+    print(f"Save merged model to: {output_merged_dir}")
+    model = AutoPeftModelForCausalLM.from_pretrained(peft_model_path, device_map="auto", torch_dtype=torch.bfloat16)
+    model = model.merge_and_unload()  # merge finetuned weights with base model weights
+
+    # with open(os.path.join(peft_model_path, "adapter_config.json"), 'r') as f:
+    #     config = json.load(f)
+    # tokenizer = AutoTokenizer.from_pretrained(config["base_model_name_or_path"])
+
+    # save merged finetuned model
+    os.makedirs(output_merged_dir, exist_ok=True)
+    model.save_pretrained(output_merged_dir, safe_serialization=False)  # True if safetensors
+
+    # save tokenizer
+    tokenizer.save_pretrained(output_merged_dir)
+
 def set_tokenizer_params(tokenizer: LlamaTokenizer):
     tokenizer.pad_token_id = 0
     tokenizer.padding_side = "left"
@@ -44,7 +67,7 @@ def set_tokenizer_params(tokenizer: LlamaTokenizer):
 def byte2mb(x):
     return int(x / 2**20)
 
-def train(model, train_dataloader,eval_dataloader, tokenizer, optimizer, lr_scheduler, gradient_accumulation_steps, train_config, fsdp_config=None, local_rank=None, rank=None):
+def train(model, train_dataloader, eval_dataloader, tokenizer, optimizer, lr_scheduler, gradient_accumulation_steps, train_config, fsdp_config=None, local_rank=None, rank=None):
     """
     Trains the model on the given dataloader
     
@@ -86,6 +109,7 @@ def train(model, train_dataloader,eval_dataloader, tokenizer, optimizer, lr_sche
                     else:
                         batch[key] = batch[key].to('cuda:0')              
                 loss = model(**batch).loss
+                print(f"loss: {loss}")
                 loss = loss / gradient_accumulation_steps
                 total_loss += loss.detach().float()
                 if train_config.use_fp16:

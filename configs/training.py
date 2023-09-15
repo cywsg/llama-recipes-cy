@@ -20,11 +20,12 @@ class train_config:
     use_fp16: bool=False
     mixed_precision: bool=True
     val_batch_size: int=1
-    dataset = "samsum_dataset"
+    dataset:str = "samsum_dataset"
     micro_batch_size: int=4
     peft_method: str = "lora" # None , llama_adapter, prefix
     use_peft: bool=False
     output_dir: str = "PATH/to/save/PEFT/model"
+    output_merged_dir: str = "PATH/to/save/PEFT/model-merged"
     freeze_layers: bool = False
     num_freeze_layers: int = 1
     quantization: bool = False

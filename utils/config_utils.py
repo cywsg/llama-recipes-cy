@@ -3,7 +3,7 @@
 
 import inspect
 import torch
-from dataclasses import fields
+from dataclasses import asdict, fields
 from peft import (
     LoraConfig,
     AdaptionPromptConfig,
@@ -22,6 +22,7 @@ def update_config(config, **kwargs):
             update_config(c, **kwargs)
     else:
         for k, v in kwargs.items():
+            # print(f"{k}: {v}")
             if hasattr(config, k):
                 setattr(config, k, v)
             elif "." in k:
@@ -47,6 +48,7 @@ def generate_peft_config(train_config, kwargs):
     config = configs[names.index(train_config.peft_method)]
     update_config(config, **kwargs)
     params = {k.name: getattr(config, k.name) for k in fields(config)}
+    # params = asdict(config)
     peft_config = peft_configs[names.index(train_config.peft_method)](**params)
     
     return peft_config

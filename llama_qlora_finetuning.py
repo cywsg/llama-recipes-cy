@@ -39,7 +39,8 @@ from utils.train_utils import (
     clear_gpu_cache,
     get_parameter_dtypes,
     print_model_size,
-    get_policies  
+    get_policies,
+    merge_weights_save_model
 )
 
 from utils.dataset_utils import get_preprocessed_dataset
@@ -50,7 +51,7 @@ from utils.config_utils import (
     create_bnb_config,
     generate_dataset_config,
 )
-from peft import get_peft_model, TaskType, prepare_model_for_int8_training
+from peft import get_peft_model, TaskType, prepare_model_for_kbit_training
 import configs
 from torch.distributed.fsdp import (
     FullyShardedDataParallel as FSDP,
@@ -73,6 +74,10 @@ from torch.utils.data import random_split, Subset
 
 def main(**kwargs):
     # Update the configuration for the training and sharding process
+    for k, v in kwargs.items():
+        print(f"{k}: {v}")
+    print("--------")
+
     update_config((train_config, fsdp_config), **kwargs)
 
     # Load the tokenizer and add special tokens
@@ -92,6 +97,7 @@ def main(**kwargs):
         dataset_config,
         split="train",
     )
+    print(f"--> Full Training Set Length = {len(dataset_train)}")
 
     if len(dataset_config.test_split) > 0:
         dataset_val = get_preprocessed_dataset(
@@ -102,6 +108,7 @@ def main(**kwargs):
     else:
         # split the data set to training data and validation data
         dataset = dataset_train
+        print(f"--> Training Set Length Before Splitting = {len(dataset)}")
 #        indices = torch.arange(1000)
 #        dataset = Subset(dataset_train, indices)
         train_size = int(0.9 * len(dataset))
@@ -125,7 +132,9 @@ def main(**kwargs):
     
     # Calculate gradient accumulation steps
     gradient_accumulation_steps = train_config.batch_size_training // train_config.micro_batch_size
-     
+    # gradient_accumulation_steps = train_config.gradient_accumulation_steps
+    print(f"gradient_accumulation_steps: {gradient_accumulation_steps}")
+
 #     # Load the pre-trained model and setup its configuration
 #     model = AutoModelForCausalLM.from_pretrained(
 #         train_config.model_name,
@@ -149,10 +158,14 @@ def main(**kwargs):
         if not verify_latest_nightly:
             raise Exception("latest pytorch nightly build is required to run with low_cpu_fsdp config, "
                             "please install latest nightly.")
+        
+        print(f"train_config.enable_fsdp: {train_config.enable_fsdp}")
+        print(f"train_config.low_cpu_fsdp: {train_config.low_cpu_fsdp}")
+
         if rank == 0:
             model = LlamaForCausalLM.from_pretrained(
                 train_config.model_name,
-                quantization_config=bnb_config,
+                quantization_config=bnb_config if train_config.quantization else None,
                 # load_in_8bit=True if train_config.quantization else None,
                 device_map="auto" if train_config.quantization else None,
                 use_safetensors=False,
@@ -163,9 +176,12 @@ def main(**kwargs):
                 model = LlamaForCausalLM(llama_config)
 
     else:
+        print(f"train_config.enable_fsdp: {train_config.enable_fsdp}")
+        print(f"train_config.low_cpu_fsdp: {train_config.low_cpu_fsdp}")
         model = LlamaForCausalLM.from_pretrained(
             train_config.model_name,
-            load_in_8bit=True if train_config.quantization else None,
+            # load_in_8bit=True if train_config.quantization else None,
+            quantization_config=bnb_config if train_config.quantization else None,
             device_map="auto" if train_config.quantization else None,
             use_safetensors=False,
         ) 
@@ -185,7 +201,7 @@ def main(**kwargs):
     
     # Prepare the model for int8 training if quantization is enabled
     if train_config.quantization:
-        model = prepare_model_for_int8_training(model)
+        model = prepare_model_for_kbit_training(model)
         
     # Convert the model to bfloat16 if fsdp and pure_bf16 is enabled
     if train_config.enable_fsdp and fsdp_config.pure_bf16:
@@ -246,6 +262,7 @@ def main(**kwargs):
             )
         
     # Create DataLoaders for the training and validation dataset
+    # print(dataset_train[0])
     train_dataloader = torch.utils.data.DataLoader(
         dataset_train,
         batch_size=train_config.batch_size_training,
@@ -300,6 +317,14 @@ def main(**kwargs):
     )
     if not train_config.enable_fsdp or rank==0:
         [print(f'Key: {k}, Value: {v}') for k, v in results.items()]
+
+    # save merge model
+    if train_config.output_merged_dir:
+        merge_weights_save_model(
+            train_config.output_dir,
+            train_config.output_merged_dir,
+            tokenizer,
+        )
 
 if __name__ == "__main__":
     fire.Fire(main)

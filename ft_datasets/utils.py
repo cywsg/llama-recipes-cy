@@ -8,6 +8,7 @@ from torch.utils.data import Dataset
 class Concatenator(object):
     def __init__(self, chunk_size=2048):
         self.chunk_size=chunk_size
+        # print(f"self.chunk_size: {self.chunk_size}")
         self.residual = {"input_ids": [], "attention_mask": []}
         
     def __call__(self, batch):
@@ -16,6 +17,7 @@ class Concatenator(object):
         }
 
         total_length = len(concatenated_samples[list(concatenated_samples.keys())[0]])
+        print(f"total_length: {total_length}")
 
         if total_length >= self.chunk_size:
             chunk_num = total_length // self.chunk_size
