@@ -163,13 +163,33 @@ def main(**kwargs):
         # print(f"train_config.low_cpu_fsdp: {train_config.low_cpu_fsdp}")
 
         if rank == 0:
-            model = LlamaForCausalLM.from_pretrained(
-                train_config.model_name,
-                quantization_config=bnb_config if train_config.quantization else None,
-                # load_in_8bit=True if train_config.quantization else None,
-                device_map="auto" if train_config.quantization else None,
-                use_safetensors=False,
-            )
+            if "yarn" in train_config.model_name.lower():
+                from scaled_rope.configuration_llama import LlamaConfig
+                from scaled_rope.modeling_llama_together_yarn import LlamaForCausalLM
+                yarn_factor = 16.0
+                yarn_config = LlamaConfig.from_pretrained(train_config.model_name)
+                yarn_config.rope_scaling = {
+                    "type": "yarn",
+                    "factor": yarn_factor,
+                    "original_max_position_embeddings": 4096
+                }
+                yarn_config.max_position_embeddings = int(yarn_factor * 4096)
+
+                model = LlamaForCausalLM.from_pretrained(
+                    train_config.model_name,
+                    torch_dtype=torch.bfloat16,
+                    config=yarn_config,
+                    use_safetensors=False,
+                )
+            else:
+                model = LlamaForCausalLM.from_pretrained(
+                    train_config.model_name,
+                    quantization_config=bnb_config if train_config.quantization else None,
+                    # load_in_8bit=True if train_config.quantization else None,
+                    device_map="auto" if train_config.quantization else None,
+                    use_safetensors=False,
+                    trust_remote_code=True,
+                )
         else:
             llama_config = LlamaConfig.from_pretrained(train_config.model_name)
             with torch.device("meta"):

@@ -58,18 +58,18 @@ torchrun --nnodes 1 --nproc_per_node 1 llama_qlora_finetuning.py \
 
 
 
-torchrun --nnodes 1 --nproc_per_node 1 llama_qlora_finetuning.py \
-         --use_peft \
-         --peft_method lora \
-         --pure_bf16 \
-         --num_epochs 20 \
-         --lr 0.00002 \
-         --weight_decay 0.05 \
-         --batch_size_training 4 \
-         --micro_batch_size 4 \
-         --val_batch_size 1 \
-         --dataset sum_dataset \
-         --model_name /home/chong-yaw.wee/work/models/Yarn-Llama-2-13b-128k \
-         --output_dir model_checkpoints/Yarn-Llama-2-13b-128k-lora \
-         --output_merged_dir model_checkpoints/Yarn-Llama-2-13b-128k-merged \
-         --enable_fsdp --low_cpu_fsdp --fsdp_cpu_offload --use_fast_kernels \
+# torchrun --nnodes 1 --nproc_per_node 1 llama_qlora_finetuning.py \
+#          --use_peft \
+#          --peft_method lora \
+#          --pure_bf16 \
+#          --num_epochs 20 \
+#          --lr 0.00002 \
+#          --weight_decay 0.05 \
+#          --batch_size_training 4 \
+#          --micro_batch_size 4 \
+#          --val_batch_size 1 \
+#          --dataset sum_dataset \
+#          --model_name /home/chong-yaw.wee/work/models/Yarn-Llama-2-13b-128k \
+#          --output_dir model_checkpoints/Yarn-Llama-2-13b-128k-lora \
+#          --output_merged_dir model_checkpoints/Yarn-Llama-2-13b-128k-merged \
+#          --enable_fsdp --low_cpu_fsdp --fsdp_cpu_offload --use_fast_kernels \
