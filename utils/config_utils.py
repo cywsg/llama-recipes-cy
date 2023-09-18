@@ -47,10 +47,12 @@ def generate_peft_config(train_config, kwargs):
     
     config = configs[names.index(train_config.peft_method)]
     update_config(config, **kwargs)
-    params = {k.name: getattr(config, k.name) for k in fields(config)}
-    # params = asdict(config)
+    # print(f"*** LORA config: {fields(config)}")
+    # params = {k.name: getattr(config, k.name) for k in fields(config)}
+    params = asdict(config())
     peft_config = peft_configs[names.index(train_config.peft_method)](**params)
-    
+    # print(f"{peft_config}")
+
     return peft_config
 
 

@@ -133,7 +133,7 @@ def main(**kwargs):
     # Calculate gradient accumulation steps
     gradient_accumulation_steps = train_config.batch_size_training // train_config.micro_batch_size
     # gradient_accumulation_steps = train_config.gradient_accumulation_steps
-    print(f"gradient_accumulation_steps: {gradient_accumulation_steps}")
+    # print(f"gradient_accumulation_steps: {gradient_accumulation_steps}")
 
 #     # Load the pre-trained model and setup its configuration
 #     model = AutoModelForCausalLM.from_pretrained(
@@ -159,8 +159,8 @@ def main(**kwargs):
             raise Exception("latest pytorch nightly build is required to run with low_cpu_fsdp config, "
                             "please install latest nightly.")
         
-        print(f"train_config.enable_fsdp: {train_config.enable_fsdp}")
-        print(f"train_config.low_cpu_fsdp: {train_config.low_cpu_fsdp}")
+        # print(f"train_config.enable_fsdp: {train_config.enable_fsdp}")
+        # print(f"train_config.low_cpu_fsdp: {train_config.low_cpu_fsdp}")
 
         if rank == 0:
             model = LlamaForCausalLM.from_pretrained(
@@ -209,6 +209,7 @@ def main(**kwargs):
 
     if train_config.use_peft:
         peft_config = generate_peft_config(train_config, kwargs)
+        # print(f"{peft_config}")
         model = get_peft_model(model, peft_config)
         model.print_trainable_parameters()
     

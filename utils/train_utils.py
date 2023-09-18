@@ -48,10 +48,6 @@ def merge_weights_save_model(
     model = AutoPeftModelForCausalLM.from_pretrained(peft_model_path, device_map="auto", torch_dtype=torch.bfloat16)
     model = model.merge_and_unload()  # merge finetuned weights with base model weights
 
-    # with open(os.path.join(peft_model_path, "adapter_config.json"), 'r') as f:
-    #     config = json.load(f)
-    # tokenizer = AutoTokenizer.from_pretrained(config["base_model_name_or_path"])
-
     # save merged finetuned model
     os.makedirs(output_merged_dir, exist_ok=True)
     model.save_pretrained(output_merged_dir, safe_serialization=False)  # True if safetensors
