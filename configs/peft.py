@@ -9,7 +9,8 @@ class lora_config:
      r: int=16
      lora_alpha: int=64
      # target_modules: List[str]=field(default_factory=lambda: ["k_proj", "gate_proj", "v_proj", "up_proj", "q_proj", "o_proj", "down_proj"])
-     target_modules: List[str]=field(default_factory=lambda: ["v_proj", "q_proj"])
+     # target_modules: List[str]=field(default_factory=lambda: ["v_proj", "q_proj"])
+     target_modules: List[str]=field(default_factory=lambda: ["gate_proj", "down_proj", "up_proj"])
      bias= "none"
      task_type: str="CAUSAL_LM"
      lora_dropout: float=0.1
